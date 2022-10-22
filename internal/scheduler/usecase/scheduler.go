@@ -11,24 +11,27 @@ import (
 	"github.com/ttagiyeva/scheduler/internal/order"
 	"github.com/ttagiyeva/scheduler/internal/scheduler/domain"
 	"github.com/ttagiyeva/scheduler/internal/scheduler/repository"
+	"go.uber.org/zap"
 )
 
-const controllerInterval = 5
+const controllerInterval = 10
 
 type Scheduler struct {
 	drone   DroneService
 	order   OrderService
 	kitchen KitchenService
 	repo    repository.Scheduler
+	log     *zap.SugaredLogger
 }
 
 //New creates an Scheduler instance
-func New(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, repo *repository.Firestore) *Scheduler {
+func New(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, repo *repository.Firestore, log *zap.SugaredLogger) *Scheduler {
 	return &Scheduler{
 		drone:   drone,
 		kitchen: kitchen,
 		order:   order,
 		repo:    repo,
+		log:     log,
 	}
 }
 
@@ -55,6 +58,10 @@ func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
+		s.log.Info("created kitchen order ", scheduler)
+		s.log.Info("created scheduler ", scheduler)
+
 	}
 
 	return nil
@@ -79,6 +86,9 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+
+			s.log.Info("deleted rejected order from scheduler ", scheduler)
+
 			continue
 		}
 
@@ -94,6 +104,8 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 				return err
 			}
 
+			s.log.Info("updated order status to preparation ", scheduler)
+
 		} else if kitchenOrder.Status == food.KitchenOrder_PACKAGED {
 
 			shipment, err := s.drone.CreateShipment(ctx, scheduler.OrderName)
@@ -101,12 +113,16 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 				return err
 			}
 
+			s.log.Info("created shipment order ", scheduler)
+
 			scheduler.DroneName = shipment.Name
 
 			err = s.repo.Update(ctx, scheduler)
 			if err != nil {
 				return err
 			}
+
+			s.log.Info("updated scheduler ", scheduler)
 		}
 	}
 
@@ -133,6 +149,9 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+
+			s.log.Info("deleted rejected order from scheduler ", scheduler)
+
 			continue
 		}
 
@@ -148,6 +167,8 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 				return err
 			}
 
+			s.log.Info("updated order status to in_flight ", scheduler)
+
 		} else if shipment.Status == food.Shipment_DELIVERED {
 
 			err = s.repo.Delete(ctx, scheduler.OrderName)
@@ -155,10 +176,14 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 				return err
 			}
 
+			s.log.Info("order completed ", scheduler)
+
 			err = s.order.UpdateOrder(ctx, order.Name, food.Order_DELIVERED)
 			if err != nil {
 				return err
 			}
+
+			s.log.Info("updated order status to delivered ", scheduler)
 		}
 	}
 

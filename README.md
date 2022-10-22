@@ -23,7 +23,7 @@ For Firestore UI docker can be used
 docker run   --rm   -p=8080:8080   -p=4000:4000   -p=9099:9099   -p=8085:8085   -p=5001:5001   -p=9199:9199   --env "GCP_PROJECT=dietdoctor"   --env "ENABLE_UI=true"   spine3/firebase-emulator
 ```
 
-The service uses TLS to secure transport of the API endpoints, a cert/key pair must be provided, example is showen in the [Example](#example) part
+The service uses TLS to secure transport of the API endpoints, a cert/key pair must be provided, example is showen in the [Hits](#hits) part
 
 ```
 export FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
@@ -31,7 +31,7 @@ export FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
 ./food-linux-amd64 server --store-namespace=foo --tls-cert=server.crt --tls-key=server.key --gcp-project-id=dietdoctor --debug --controller-interval=10s
 ```
 
-## Example
+## Hits
 Creation of certificate example steps:
 
 -  create config.conf file in the directory binary is, add these
