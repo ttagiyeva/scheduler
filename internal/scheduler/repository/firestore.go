@@ -12,19 +12,23 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type FirestoreRepo struct {
+const (
+	dronePath = "drone_name"
+)
+
+type Firestore struct {
 	log    *zap.SugaredLogger
 	config *config.Config
 	client *firestore.Client
 }
 
-//NewFirestoreRepo creates Firestore Client and FirestoreRepo instance
-func NewFirestoreRepo(lc fx.Lifecycle, log *zap.SugaredLogger, config *config.Config) (*FirestoreRepo, error) {
+//New creates Firestore Client and Firestore instance
+func New(lc fx.Lifecycle, log *zap.SugaredLogger, config *config.Config) (*Firestore, error) {
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, config.FirestoreConfig.ProjectName)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	lc.Append(fx.Hook{
@@ -33,14 +37,15 @@ func NewFirestoreRepo(lc fx.Lifecycle, log *zap.SugaredLogger, config *config.Co
 		},
 	})
 
-	return &FirestoreRepo{
+	return &Firestore{
 		log:    log,
 		config: config,
-		client: client}, nil
+		client: client,
+	}, nil
 }
 
 //Save creates a scheduler document in forestore collection
-func (f *FirestoreRepo) Save(ctx context.Context, s *domain.Scheduler) error {
+func (f *Firestore) Save(ctx context.Context, s *domain.Scheduler) error {
 
 	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(s.OrderName).Set(ctx, s)
 	if err != nil {
@@ -52,7 +57,7 @@ func (f *FirestoreRepo) Save(ctx context.Context, s *domain.Scheduler) error {
 }
 
 //Get reterieves a scheduler document of given id
-func (f *FirestoreRepo) Get(ctx context.Context, orderName string) (*domain.Scheduler, error) {
+func (f *Firestore) Get(ctx context.Context, orderName string) (*domain.Scheduler, error) {
 
 	doc, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(orderName).Get(ctx)
 	if err != nil {
@@ -76,7 +81,7 @@ func (f *FirestoreRepo) Get(ctx context.Context, orderName string) (*domain.Sche
 }
 
 //GetAll retrieves queried documents
-func (f *FirestoreRepo) GetAll(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error) {
+func (f *Firestore) GetAll(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error) {
 
 	var datas = make([]*domain.Scheduler, 0)
 	iter := f.client.Collection(f.config.FirestoreConfig.CollectionName).Where(path, op, value).Documents(ctx)
@@ -107,12 +112,12 @@ func (f *FirestoreRepo) GetAll(ctx context.Context, path string, op string, valu
 	return datas, nil
 }
 
-//Update updates drone_name field of a scheduler document
-func (f *FirestoreRepo) Update(ctx context.Context, s *domain.Scheduler) error {
+//Update updates dronePath field of a scheduler document
+func (f *Firestore) Update(ctx context.Context, s *domain.Scheduler) error {
 
 	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(s.OrderName).Update(ctx, []firestore.Update{
 		{
-			Path:  "drone_name",
+			Path:  dronePath,
 			Value: s.DroneName,
 		},
 	})
@@ -125,7 +130,7 @@ func (f *FirestoreRepo) Update(ctx context.Context, s *domain.Scheduler) error {
 }
 
 //Delete deletes document of given id
-func (f *FirestoreRepo) Delete(ctx context.Context, orderName string) error {
+func (f *Firestore) Delete(ctx context.Context, orderName string) error {
 
 	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(orderName).Delete(ctx)
 	if err != nil {
@@ -135,28 +140,3 @@ func (f *FirestoreRepo) Delete(ctx context.Context, orderName string) error {
 
 	return nil
 }
-
-/*
-func (f *FirestoreRepo) getFields(scheduler domain.Scheduler) []firestore.Update {
-
-	updates := make([]firestore.Update, 0)
-	val := reflect.ValueOf(scheduler)
-
-	for i := 0; i < val.Type().NumField(); i++ {
-
-		field := val.Type().Field(i)
-		value := reflect.Indirect(val).FieldByName(field.Name)
-
-		if !value.IsZero() {
-			update := firestore.Update{
-				Path:  field.Tag.Get("firestore"),
-				Value: value,
-			}
-			updates = append(updates, update)
-		}
-
-	}
-
-	return updates
-}
-*/

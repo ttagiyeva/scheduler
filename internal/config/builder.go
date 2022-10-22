@@ -6,10 +6,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type HttpServerConfig struct {
-	Port int
-}
-
 type LoggerConfig struct {
 	Level    string
 	Encoding string
@@ -25,7 +21,6 @@ type FirestoreConfig struct {
 }
 
 type Config struct {
-	HttpServerConfig HttpServerConfig
 	LoggerConfig     LoggerConfig
 	GrpcServerConfig GrpcServerConfig
 	FirestoreConfig  FirestoreConfig
@@ -39,9 +34,6 @@ func New() *Config {
 	confer.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	conf := &Config{
-		HttpServerConfig: HttpServerConfig{
-			Port: confer.GetInt("http.port"),
-		},
 		LoggerConfig: LoggerConfig{
 			Level:    confer.GetString("log.level"),
 			Encoding: confer.GetString("log.encoding"),

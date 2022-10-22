@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/dietdoctor/be-test/pkg/food/v1"
 	"github.com/ttagiyeva/scheduler/internal/drone"
@@ -11,16 +13,18 @@ import (
 	"github.com/ttagiyeva/scheduler/internal/scheduler/repository"
 )
 
-type SchedulerUsecase struct {
-	drone   *drone.Handler
-	order   *order.Handler
-	kitchen *kitchen.Handler
-	repo    repository.SchedulerRepo
+const controllerInterval = 5
+
+type Scheduler struct {
+	drone   DroneService
+	order   OrderService
+	kitchen KitchenService
+	repo    repository.Scheduler
 }
 
-//NewSchedulerUsecase creates an SchedulerUsecase instance
-func NewSchedulerUsecase(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, repo *repository.FirestoreRepo) *SchedulerUsecase {
-	return &SchedulerUsecase{
+//New creates an Scheduler instance
+func New(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, repo *repository.Firestore) *Scheduler {
+	return &Scheduler{
 		drone:   drone,
 		kitchen: kitchen,
 		order:   order,
@@ -29,7 +33,7 @@ func NewSchedulerUsecase(drone *drone.Handler, order *order.Handler, kitchen *ki
 }
 
 //CreateKitchenOrders creates kitchen order to orders that are new
-func (s *SchedulerUsecase) CreateKitchenOrders(ctx context.Context) error {
+func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 
 	orders, err := s.order.ListOrders(ctx, food.Order_NEW)
 	if err != nil {
@@ -57,7 +61,7 @@ func (s *SchedulerUsecase) CreateKitchenOrders(ctx context.Context) error {
 }
 
 //CreateShipmentOrders creates shipment order to kitchen orders which are packaged
-func (s *SchedulerUsecase) CreateShipmentOrders(ctx context.Context) error {
+func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 	schedulers, err := s.repo.GetAll(ctx, "drone_name", "==", "")
 	if err != nil {
 		return err
@@ -110,7 +114,7 @@ func (s *SchedulerUsecase) CreateShipmentOrders(ctx context.Context) error {
 }
 
 //CompleteOrders changes order status depend on shipment status
-func (s *SchedulerUsecase) CompleteOrders(ctx context.Context) error {
+func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 
 	schedulers, err := s.repo.GetAll(ctx, "drone_name", "!=", "")
 	if err != nil {
@@ -159,4 +163,38 @@ func (s *SchedulerUsecase) CompleteOrders(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *Scheduler) Start(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		var wg sync.WaitGroup
+
+		wg.Add(3)
+
+		go func() {
+			s.CreateKitchenOrders(ctx)
+			wg.Done()
+		}()
+
+		go func() {
+			s.CreateShipmentOrders(ctx)
+			wg.Done()
+		}()
+
+		go func() {
+			s.CompleteOrders(ctx)
+			wg.Done()
+		}()
+
+		wg.Wait()
+
+		time.Sleep(time.Second * controllerInterval)
+	}
+
 }

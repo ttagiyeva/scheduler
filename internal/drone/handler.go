@@ -11,18 +11,19 @@ import (
 //Handler is drone service handler struct
 type Handler struct {
 	log    *zap.SugaredLogger
-	Client food.DroneServiceClient
+	client food.DroneServiceClient
 }
 
 //NewHandler creates a new drone handler instance
 func NewHandler(log *zap.SugaredLogger, client food.DroneServiceClient) *Handler {
 	return &Handler{
 		log:    log,
-		Client: client}
+		client: client,
+	}
 }
 
 func (h *Handler) CreateShipment(ctx context.Context, orderName string) (*food.Shipment, error) {
-	shipment, err := h.Client.CreateShipment(ctx, &food.CreateShipmentRequest{
+	shipment, err := h.client.CreateShipment(ctx, &food.CreateShipmentRequest{
 		Shipment: &food.Shipment{
 			Name:       orderName,
 			CreateTime: time.Now().String(),
@@ -37,7 +38,7 @@ func (h *Handler) CreateShipment(ctx context.Context, orderName string) (*food.S
 }
 
 func (h *Handler) GetShipment(ctx context.Context, orderName string) (*food.Shipment, error) {
-	shipment, err := h.Client.GetShipment(ctx, &food.GetShipmentRequest{
+	shipment, err := h.client.GetShipment(ctx, &food.GetShipmentRequest{
 		Name: orderName,
 	})
 	if err != nil {
