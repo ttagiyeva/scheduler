@@ -20,12 +20,17 @@ type FirestoreConfig struct {
 	CollectionName string
 }
 
+type ProjectConfig struct {
+	Interval int
+}
 type Config struct {
 	LoggerConfig     LoggerConfig
 	GrpcServerConfig GrpcServerConfig
 	FirestoreConfig  FirestoreConfig
+	ProjectConfig    ProjectConfig
 }
 
+// New returns a new instance of config
 func New() *Config {
 	confer := viper.New()
 
@@ -44,6 +49,9 @@ func New() *Config {
 		FirestoreConfig: FirestoreConfig{
 			ProjectName:    confer.GetString("firestore.projectname"),
 			CollectionName: confer.GetString("firestore.collection"),
+		},
+		ProjectConfig: ProjectConfig{
+			Interval: confer.GetInt("project.interval"),
 		},
 	}
 

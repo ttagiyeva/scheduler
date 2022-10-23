@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// NewClient is new grpc client for Drone service
+//NewClient is new grpc drone client for drone service
 func NewClient(log *zap.SugaredLogger, cfg *config.Config) droneClient.DroneServiceClient {
 	config := &tls.Config{
 		InsecureSkipVerify: true,

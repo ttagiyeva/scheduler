@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-//NewZapLogger constructs a logger instance
+//NewZapLogger returns a new instance of zap logger
 func NewZapLogger(lc fx.Lifecycle, conf *config.Config) *zap.SugaredLogger {
 	cfg := zap.Config{
 		Encoding:    conf.LoggerConfig.Encoding,

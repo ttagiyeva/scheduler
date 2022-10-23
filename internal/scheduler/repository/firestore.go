@@ -19,13 +19,14 @@ const (
 	dronePath   = "drone_name"
 )
 
+//Firestore is a struct for firestore repository
 type Firestore struct {
 	log    *zap.SugaredLogger
 	config *config.Config
 	client *firestore.Client
 }
 
-//New creates Firestore Client and Firestore instance
+//New returns a new instance of Firestore
 func New(lc fx.Lifecycle, log *zap.SugaredLogger, config *config.Config) (*Firestore, error) {
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, config.FirestoreConfig.ProjectName)
@@ -47,7 +48,7 @@ func New(lc fx.Lifecycle, log *zap.SugaredLogger, config *config.Config) (*Fires
 	}, nil
 }
 
-//Save creates a scheduler document in forestore collection
+//Save saves a scheduler document
 func (f *Firestore) Save(ctx context.Context, s *domain.Scheduler) error {
 	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(s.DocumentId).Set(ctx, s)
 	if err != nil {
@@ -58,7 +59,7 @@ func (f *Firestore) Save(ctx context.Context, s *domain.Scheduler) error {
 	return nil
 }
 
-//Get reterieves a scheduler document of given id
+//Get retrieves a scheduler document
 func (f *Firestore) Get(ctx context.Context, documentId string) (*domain.Scheduler, error) {
 	doc, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(documentId).Get(ctx)
 	if err != nil {
@@ -81,8 +82,8 @@ func (f *Firestore) Get(ctx context.Context, documentId string) (*domain.Schedul
 	return scheduler, nil
 }
 
-//GetAll retrieves queried documents
-func (f *Firestore) GetAll(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error) {
+//GetQueried returns a list of scheduler documents that match the query
+func (f *Firestore) GetQueried(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error) {
 
 	var datas = make([]*domain.Scheduler, 0)
 	iter := f.client.Collection(f.config.FirestoreConfig.CollectionName).Where(path, op, value).Documents(ctx)
@@ -114,7 +115,7 @@ func (f *Firestore) GetAll(ctx context.Context, path string, op string, value in
 	return datas, nil
 }
 
-//Update updates dronePath field of a scheduler document
+//Update updates a scheduler document
 func (f *Firestore) Update(ctx context.Context, s *domain.Scheduler) error {
 	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(s.DocumentId).Update(ctx, []firestore.Update{
 		{
@@ -130,7 +131,7 @@ func (f *Firestore) Update(ctx context.Context, s *domain.Scheduler) error {
 	return nil
 }
 
-//Delete deletes document of given id
+//Delete deletes a scheduler document
 func (f *Firestore) Delete(ctx context.Context, documentId string) error {
 	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(documentId).Delete(ctx)
 	if err != nil {

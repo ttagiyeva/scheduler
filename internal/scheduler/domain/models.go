@@ -1,5 +1,6 @@
 package domain
 
+// Scheduler is a struct for scheduler document
 type Scheduler struct {
 	DocumentId  string `firestore:"document_id"`
 	OrderName   string `firestore:"order_name"`

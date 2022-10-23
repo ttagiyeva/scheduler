@@ -8,13 +8,13 @@ import (
 	"go.uber.org/zap"
 )
 
-//Handler is drone service handler struct
+//Handler is a drone handler
 type Handler struct {
 	log    *zap.SugaredLogger
 	client food.DroneServiceClient
 }
 
-//NewHandler creates a new drone handler instance
+//NewHandler creates a new drone handler
 func NewHandler(log *zap.SugaredLogger, client food.DroneServiceClient) *Handler {
 	return &Handler{
 		log:    log,
@@ -22,6 +22,7 @@ func NewHandler(log *zap.SugaredLogger, client food.DroneServiceClient) *Handler
 	}
 }
 
+//CreateShipment creates a shipment
 func (h *Handler) CreateShipment(ctx context.Context, orderName string) (*food.Shipment, error) {
 	shipment, err := h.client.CreateShipment(ctx, &food.CreateShipmentRequest{
 		Shipment: &food.Shipment{
@@ -37,6 +38,7 @@ func (h *Handler) CreateShipment(ctx context.Context, orderName string) (*food.S
 	return shipment, nil
 }
 
+//UpdateShipment updates a shipment
 func (h *Handler) GetShipment(ctx context.Context, orderName string) (*food.Shipment, error) {
 	shipment, err := h.client.GetShipment(ctx, &food.GetShipmentRequest{
 		Name: orderName,

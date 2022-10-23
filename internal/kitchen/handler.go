@@ -8,13 +8,13 @@ import (
 	"go.uber.org/zap"
 )
 
-//Handler kitchen service handler struct
+//Handler is a kitchen handler
 type Handler struct {
 	log    *zap.SugaredLogger
 	client food.KitchenServiceClient
 }
 
-//NewHandler creates a new kitchen handler instance
+//NewHandler creates a new kitchen handler
 func NewHandler(log *zap.SugaredLogger, client food.KitchenServiceClient) *Handler {
 	return &Handler{
 		log:    log,
@@ -22,6 +22,7 @@ func NewHandler(log *zap.SugaredLogger, client food.KitchenServiceClient) *Handl
 	}
 }
 
+//CreateKitchenOrder creates a kitchen order
 func (h *Handler) CreateKitchenOrder(ctx context.Context, orderName string) (*food.KitchenOrder, error) {
 	order, err := h.client.CreateKitchenOrder(ctx, &food.CreateKitchenOrderRequest{
 		Kitchenorder: &food.KitchenOrder{
@@ -38,6 +39,7 @@ func (h *Handler) CreateKitchenOrder(ctx context.Context, orderName string) (*fo
 	return order, nil
 }
 
+//GetKitchenOrder returns a single kitchen order
 func (h *Handler) GetKitchenOrder(ctx context.Context, orderName string) (*food.KitchenOrder, error) {
 	order, err := h.client.GetKitchenOrder(ctx, &food.GetKitchenOrderRequest{
 		Name: orderName,

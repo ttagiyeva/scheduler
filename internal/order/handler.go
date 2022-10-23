@@ -8,13 +8,13 @@ import (
 	"google.golang.org/genproto/protobuf/field_mask"
 )
 
-//Handler order service handler struct
+//Handler is a order handler
 type Handler struct {
 	log    *zap.SugaredLogger
 	client food.OrderServiceClient
 }
 
-//NewHandler creates a new drone handler instance
+//NewHandler creates a new order handler
 func NewHandler(log *zap.SugaredLogger, client food.OrderServiceClient) *Handler {
 	return &Handler{
 		log:    log,
@@ -22,6 +22,7 @@ func NewHandler(log *zap.SugaredLogger, client food.OrderServiceClient) *Handler
 	}
 }
 
+//ListOrders returns a list of orders
 func (h *Handler) ListOrders(ctx context.Context, status food.Order_Status) ([]*food.Order, error) {
 	orders, err := h.client.ListOrders(ctx, &food.ListOrdersRequest{
 		StatusFilter: status,
@@ -34,6 +35,7 @@ func (h *Handler) ListOrders(ctx context.Context, status food.Order_Status) ([]*
 	return orders.Orders, nil
 }
 
+//GetOrder returns a single order
 func (h *Handler) GetOrder(ctx context.Context, orderName string) (*food.Order, error) {
 	order, err := h.client.GetOrder(ctx, &food.GetOrderRequest{
 		Name: orderName,
@@ -46,6 +48,7 @@ func (h *Handler) GetOrder(ctx context.Context, orderName string) (*food.Order, 
 	return order, nil
 }
 
+//UpdateOrder updates an order
 func (h *Handler) UpdateOrder(ctx context.Context, orderName string, status food.Order_Status) error {
 	_, err := h.client.UpdateOrder(ctx, &food.UpdateOrderRequest{
 		Order: &food.Order{

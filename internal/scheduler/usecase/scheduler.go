@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dietdoctor/be-test/pkg/food/v1"
+	"github.com/ttagiyeva/scheduler/internal/config"
 	"github.com/ttagiyeva/scheduler/internal/drone"
 	"github.com/ttagiyeva/scheduler/internal/kitchen"
 	"github.com/ttagiyeva/scheduler/internal/order"
@@ -15,24 +16,25 @@ import (
 	"go.uber.org/zap"
 )
 
-const controllerInterval = 10
-
+//Controller is a scheduler controller
 type Scheduler struct {
 	drone   DroneService
 	order   OrderService
 	kitchen KitchenService
 	repo    repository.Scheduler
 	log     *zap.SugaredLogger
+	config  *config.Config
 }
 
 //New creates an Scheduler instance
-func New(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, repo *repository.Firestore, log *zap.SugaredLogger) *Scheduler {
+func New(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, repo *repository.Firestore, log *zap.SugaredLogger, conf *config.Config) *Scheduler {
 	return &Scheduler{
 		drone:   drone,
 		kitchen: kitchen,
 		order:   order,
 		repo:    repo,
 		log:     log,
+		config:  conf,
 	}
 }
 
@@ -50,54 +52,51 @@ func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 		orderNames = append(orderNames, orders[i].Name)
 	}
 
-	if len(orderNames) != 0 { // empty slice cannot be used in firestore query
+	var partialOrders []string
 
-		partialOrders := make([]string, 0, 10)
+	for len(orderNames) != 0 { // empty slice cannot be used in firestore query
 
-		for {
+		if len(orderNames) > 10 { // firestore query can have max 10 values
+			partialOrders = orderNames[:10]
+			orderNames = orderNames[10:]
+		} else {
+			partialOrders = orderNames
+		}
 
-			if len(orderNames) > 10 { // firestore query can have max 10 values
-				partialOrders = orderNames[:10]
-				orderNames = orderNames[10:]
-			} else {
-				partialOrders = orderNames
-			}
+		schedulers, err := s.repo.GetQueried(ctx, "order_name", "in", partialOrders)
+		if err != nil {
+			return err
+		}
 
-			schedulers, err := s.repo.GetAll(ctx, "order_name", "in", partialOrders)
+		schedulerOrderNames := make([]string, 0, len(schedulers))
+
+		for i := 0; i < len(schedulers); i++ {
+			schedulerOrderNames = append(schedulerOrderNames, schedulers[i].OrderName)
+		}
+
+		newOrders := s.getDifference(orderNames, schedulerOrderNames)
+
+		for _, order := range newOrders {
+			kitchenOrder, err := s.kitchen.CreateKitchenOrder(ctx, order)
 			if err != nil {
 				return err
 			}
 
-			schedulerOrderNames := make([]string, 0, len(schedulers))
-
-			for i := 0; i < len(schedulers); i++ {
-				schedulerOrderNames = append(schedulerOrderNames, schedulers[i].OrderName)
+			scheduler := &domain.Scheduler{
+				DocumentId:  strings.Split(order, "/")[1],
+				OrderName:   order,
+				KitchenName: kitchenOrder.Name,
 			}
 
-			newOrders := s.getDifference(orderNames, schedulerOrderNames)
-
-			for _, order := range newOrders {
-				kitchenOrder, err := s.kitchen.CreateKitchenOrder(ctx, order)
-				if err != nil {
-					return err
-				}
-
-				scheduler := &domain.Scheduler{
-					DocumentId:  strings.Split(order, "/")[1],
-					OrderName:   order,
-					KitchenName: kitchenOrder.Name,
-				}
-
-				err = s.repo.Save(ctx, scheduler)
-				if err != nil {
-					return err
-				}
-
+			err = s.repo.Save(ctx, scheduler)
+			if err != nil {
+				return err
 			}
 
-			if len(orderNames) <= 10 {
-				return nil
-			}
+		}
+
+		if len(orderNames) <= 10 {
+			return nil
 		}
 	}
 
@@ -106,7 +105,7 @@ func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 
 //CreateShipmentOrders creates shipment orders from packaged kitchen orders which are not rejected or cancelled
 func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
-	schedulers, err := s.repo.GetAll(ctx, "drone_name", "==", "")
+	schedulers, err := s.repo.GetQueried(ctx, "drone_name", "==", "")
 	if err != nil {
 		return err
 	}
@@ -123,8 +122,6 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-
-			s.log.Info("deleted rejected order from scheduler ", scheduler)
 
 			continue
 		}
@@ -150,8 +147,6 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 				return err
 			}
 
-			s.log.Info("created shipment order ", scheduler)
-
 			scheduler.DroneName = shipment.Name
 
 			err = s.repo.Update(ctx, scheduler)
@@ -159,7 +154,6 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 				return err
 			}
 
-			s.log.Info("updated scheduler ", scheduler)
 		}
 	}
 
@@ -169,7 +163,7 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 //CompleteOrders completes orders which are delivered
 func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 
-	schedulers, err := s.repo.GetAll(ctx, "drone_name", "!=", "")
+	schedulers, err := s.repo.GetQueried(ctx, "drone_name", "!=", "")
 	if err != nil {
 		return err
 	}
@@ -186,8 +180,6 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-
-			s.log.Info("deleted rejected order from scheduler ", scheduler)
 
 			continue
 		}
@@ -275,7 +267,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 		wg.Wait()
 
-		time.Sleep(time.Second * controllerInterval)
+		time.Sleep(time.Second * time.Duration(s.config.ProjectConfig.Interval))
 	}
 
 }

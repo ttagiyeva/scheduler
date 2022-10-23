@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// NewClient is new grpc client for Order service
+// NewClient is new grpc order client for order service
 func NewClient(log *zap.SugaredLogger, cfg *config.Config) orderClient.OrderServiceClient {
 	creds, err := credentials.NewClientTLSFromFile("server.crt", "")
 	if err != nil {
