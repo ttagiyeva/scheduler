@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"strings"
 
 	"cloud.google.com/go/firestore"
 	"github.com/ttagiyeva/scheduler/internal/config"
@@ -14,6 +13,7 @@ import (
 )
 
 const (
+	documentId  = "document_id"
 	orderPath   = "order_name"
 	kitchenPath = "kitchen_name"
 	dronePath   = "drone_name"
@@ -49,8 +49,7 @@ func New(lc fx.Lifecycle, log *zap.SugaredLogger, config *config.Config) (*Fires
 
 //Save creates a scheduler document in forestore collection
 func (f *Firestore) Save(ctx context.Context, s *domain.Scheduler) error {
-	docID := strings.Split(s.OrderName, "/")[1]
-	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(docID).Set(ctx, s)
+	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(s.DocumentId).Set(ctx, s)
 	if err != nil {
 		f.log.Error(err)
 		return err
@@ -61,8 +60,7 @@ func (f *Firestore) Save(ctx context.Context, s *domain.Scheduler) error {
 
 //Get reterieves a scheduler document of given id
 func (f *Firestore) Get(ctx context.Context, documentId string) (*domain.Scheduler, error) {
-	docID := strings.Split(documentId, "/")[1]
-	doc, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(docID).Get(ctx)
+	doc, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(documentId).Get(ctx)
 	if err != nil {
 		f.log.Error(err)
 		return nil, err
@@ -104,6 +102,7 @@ func (f *Firestore) GetAll(ctx context.Context, path string, op string, value in
 		}
 
 		data := &domain.Scheduler{
+			DocumentId:  doc.Data()[documentId].(string),
 			OrderName:   doc.Data()[orderPath].(string),
 			KitchenName: doc.Data()[kitchenPath].(string),
 			DroneName:   doc.Data()[dronePath].(string),
@@ -117,8 +116,7 @@ func (f *Firestore) GetAll(ctx context.Context, path string, op string, value in
 
 //Update updates dronePath field of a scheduler document
 func (f *Firestore) Update(ctx context.Context, s *domain.Scheduler) error {
-	docID := strings.Split(s.OrderName, "/")[1]
-	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(docID).Update(ctx, []firestore.Update{
+	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(s.DocumentId).Update(ctx, []firestore.Update{
 		{
 			Path:  dronePath,
 			Value: s.DroneName,
@@ -134,8 +132,7 @@ func (f *Firestore) Update(ctx context.Context, s *domain.Scheduler) error {
 
 //Delete deletes document of given id
 func (f *Firestore) Delete(ctx context.Context, documentId string) error {
-	docID := strings.Split(documentId, "/")[1]
-	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(docID).Delete(ctx)
+	_, err := f.client.Collection(f.config.FirestoreConfig.CollectionName).Doc(documentId).Delete(ctx)
 	if err != nil {
 		f.log.Error(err)
 		return err

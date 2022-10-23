@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,7 +36,7 @@ func New(drone *drone.Handler, order *order.Handler, kitchen *kitchen.Handler, r
 	}
 }
 
-//CreateKitchenOrders creates kitchen order to orders that are new
+//CreateKitchenOrders creates kitchen orders from orders which are not rejected or cancelled
 func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 
 	orders, err := s.order.ListOrders(ctx, food.Order_NEW)
@@ -43,31 +44,67 @@ func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 		return err
 	}
 
-	for _, order := range orders {
-		kitchenOrder, err := s.kitchen.CreateKitchenOrder(ctx, order.Name)
-		if err != nil {
-			return err
+	orderNames := make([]string, 0, len(orders))
+
+	for i := 0; i < len(orders); i++ {
+		orderNames = append(orderNames, orders[i].Name)
+	}
+
+	if len(orderNames) != 0 { // empty slice cannot be used in firestore query
+
+		partialOrders := make([]string, 0, 10)
+
+		for {
+
+			if len(orderNames) > 10 { // firestore query can have max 10 values
+				partialOrders = orderNames[:10]
+				orderNames = orderNames[10:]
+			} else {
+				partialOrders = orderNames
+			}
+
+			schedulers, err := s.repo.GetAll(ctx, "order_name", "in", partialOrders)
+			if err != nil {
+				return err
+			}
+
+			schedulerOrderNames := make([]string, 0, len(schedulers))
+
+			for i := 0; i < len(schedulers); i++ {
+				schedulerOrderNames = append(schedulerOrderNames, schedulers[i].OrderName)
+			}
+
+			newOrders := s.getDifference(orderNames, schedulerOrderNames)
+
+			for _, order := range newOrders {
+				kitchenOrder, err := s.kitchen.CreateKitchenOrder(ctx, order)
+				if err != nil {
+					return err
+				}
+
+				scheduler := &domain.Scheduler{
+					DocumentId:  strings.Split(order, "/")[1],
+					OrderName:   order,
+					KitchenName: kitchenOrder.Name,
+				}
+
+				err = s.repo.Save(ctx, scheduler)
+				if err != nil {
+					return err
+				}
+
+			}
+
+			if len(orderNames) <= 10 {
+				return nil
+			}
 		}
-
-		scheduler := &domain.Scheduler{
-			OrderName:   order.Name,
-			KitchenName: kitchenOrder.Name,
-		}
-
-		err = s.repo.Save(ctx, scheduler)
-		if err != nil {
-			return err
-		}
-
-		s.log.Info("created kitchen order ", scheduler)
-		s.log.Info("created scheduler ", scheduler)
-
 	}
 
 	return nil
 }
 
-//CreateShipmentOrders creates shipment order to kitchen orders which are packaged
+//CreateShipmentOrders creates shipment orders from packaged kitchen orders which are not rejected or cancelled
 func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 	schedulers, err := s.repo.GetAll(ctx, "drone_name", "==", "")
 	if err != nil {
@@ -82,7 +119,7 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 		}
 
 		if order.Status == food.Order_REJECTED || order.Status == food.Order_CANCELLED {
-			err = s.repo.Delete(ctx, scheduler.OrderName)
+			err = s.repo.Delete(ctx, scheduler.DocumentId)
 			if err != nil {
 				return err
 			}
@@ -129,7 +166,7 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 	return nil
 }
 
-//CompleteOrders changes order status depend on shipment status
+//CompleteOrders completes orders which are delivered
 func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 
 	schedulers, err := s.repo.GetAll(ctx, "drone_name", "!=", "")
@@ -145,7 +182,7 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 		}
 
 		if order.Status == food.Order_REJECTED {
-			err = s.repo.Delete(ctx, scheduler.OrderName)
+			err = s.repo.Delete(ctx, scheduler.DocumentId)
 			if err != nil {
 				return err
 			}
@@ -171,7 +208,7 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 
 		} else if shipment.Status == food.Shipment_DELIVERED {
 
-			err = s.repo.Delete(ctx, scheduler.OrderName)
+			err = s.repo.Delete(ctx, scheduler.DocumentId)
 			if err != nil {
 				return err
 			}
@@ -190,6 +227,25 @@ func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 	return nil
 }
 
+// getDifference returns the difference between two slices
+func (s *Scheduler) getDifference(first, second []string) []string {
+	mb := make(map[string]struct{}, len(second))
+
+	for _, x := range second {
+		mb[x] = struct{}{}
+	}
+
+	var diff []string
+	for _, x := range first {
+		if _, found := mb[x]; !found {
+			diff = append(diff, x)
+		}
+	}
+
+	return diff
+}
+
+//Start starts the scheduler
 func (s *Scheduler) Start(ctx context.Context) {
 	for {
 		select {
