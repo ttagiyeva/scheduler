@@ -30,6 +30,8 @@ export FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
 
 ./food-linux-amd64 server --store-namespace=foo --tls-cert=server.crt --tls-key=server.key --gcp-project-id=dietdoctor --debug --controller-interval=10s
 ```
+## Spent time
+~10 hours 
 
 ## Hits
 Creation of certificate example steps:
