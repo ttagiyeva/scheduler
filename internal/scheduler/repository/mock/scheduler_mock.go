@@ -107,13 +107,13 @@ func (_c *Scheduler_Get_Call) Return(_a0 *domain.Scheduler, _a1 error) *Schedule
 	return _c
 }
 
-// GetQueried provides a mock function with given fields: ctx, path, op, value
-func (_m *Scheduler) GetQueried(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error) {
-	ret := _m.Called(ctx, path, op, value)
+// GetAll provides a mock function with given fields: ctx
+func (_m *Scheduler) GetAll(ctx context.Context) ([]*domain.Scheduler, error) {
+	ret := _m.Called(ctx)
 
 	var r0 []*domain.Scheduler
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, interface{}) []*domain.Scheduler); ok {
-		r0 = rf(ctx, path, op, value)
+	if rf, ok := ret.Get(0).(func(context.Context) []*domain.Scheduler); ok {
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*domain.Scheduler)
@@ -121,8 +121,8 @@ func (_m *Scheduler) GetQueried(ctx context.Context, path string, op string, val
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, interface{}) error); ok {
-		r1 = rf(ctx, path, op, value)
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -130,28 +130,117 @@ func (_m *Scheduler) GetQueried(ctx context.Context, path string, op string, val
 	return r0, r1
 }
 
-// Scheduler_GetQueried_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetQueried'
-type Scheduler_GetQueried_Call struct {
+// Scheduler_GetAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAll'
+type Scheduler_GetAll_Call struct {
 	*mock.Call
 }
 
-// GetQueried is a helper method to define mock.On call
+// GetAll is a helper method to define mock.On call
 //  - ctx context.Context
-//  - path string
-//  - op string
-//  - value interface{}
-func (_e *Scheduler_Expecter) GetQueried(ctx interface{}, path interface{}, op interface{}, value interface{}) *Scheduler_GetQueried_Call {
-	return &Scheduler_GetQueried_Call{Call: _e.mock.On("GetQueried", ctx, path, op, value)}
+func (_e *Scheduler_Expecter) GetAll(ctx interface{}) *Scheduler_GetAll_Call {
+	return &Scheduler_GetAll_Call{Call: _e.mock.On("GetAll", ctx)}
 }
 
-func (_c *Scheduler_GetQueried_Call) Run(run func(ctx context.Context, path string, op string, value interface{})) *Scheduler_GetQueried_Call {
+func (_c *Scheduler_GetAll_Call) Run(run func(ctx context.Context)) *Scheduler_GetAll_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(interface{}))
+		run(args[0].(context.Context))
 	})
 	return _c
 }
 
-func (_c *Scheduler_GetQueried_Call) Return(_a0 []*domain.Scheduler, _a1 error) *Scheduler_GetQueried_Call {
+func (_c *Scheduler_GetAll_Call) Return(_a0 []*domain.Scheduler, _a1 error) *Scheduler_GetAll_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+// GetNotShiped provides a mock function with given fields: ctx
+func (_m *Scheduler) GetNotShiped(ctx context.Context) ([]*domain.Scheduler, error) {
+	ret := _m.Called(ctx)
+
+	var r0 []*domain.Scheduler
+	if rf, ok := ret.Get(0).(func(context.Context) []*domain.Scheduler); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*domain.Scheduler)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Scheduler_GetNotShiped_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNotShiped'
+type Scheduler_GetNotShiped_Call struct {
+	*mock.Call
+}
+
+// GetNotShiped is a helper method to define mock.On call
+//  - ctx context.Context
+func (_e *Scheduler_Expecter) GetNotShiped(ctx interface{}) *Scheduler_GetNotShiped_Call {
+	return &Scheduler_GetNotShiped_Call{Call: _e.mock.On("GetNotShiped", ctx)}
+}
+
+func (_c *Scheduler_GetNotShiped_Call) Run(run func(ctx context.Context)) *Scheduler_GetNotShiped_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *Scheduler_GetNotShiped_Call) Return(_a0 []*domain.Scheduler, _a1 error) *Scheduler_GetNotShiped_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+// GetShiped provides a mock function with given fields: ctx
+func (_m *Scheduler) GetShiped(ctx context.Context) ([]*domain.Scheduler, error) {
+	ret := _m.Called(ctx)
+
+	var r0 []*domain.Scheduler
+	if rf, ok := ret.Get(0).(func(context.Context) []*domain.Scheduler); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*domain.Scheduler)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Scheduler_GetShiped_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetShiped'
+type Scheduler_GetShiped_Call struct {
+	*mock.Call
+}
+
+// GetShiped is a helper method to define mock.On call
+//  - ctx context.Context
+func (_e *Scheduler_Expecter) GetShiped(ctx interface{}) *Scheduler_GetShiped_Call {
+	return &Scheduler_GetShiped_Call{Call: _e.mock.On("GetShiped", ctx)}
+}
+
+func (_c *Scheduler_GetShiped_Call) Run(run func(ctx context.Context)) *Scheduler_GetShiped_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *Scheduler_GetShiped_Call) Return(_a0 []*domain.Scheduler, _a1 error) *Scheduler_GetShiped_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }

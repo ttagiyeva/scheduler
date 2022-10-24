@@ -82,11 +82,11 @@ func (f *Firestore) Get(ctx context.Context, documentId string) (*domain.Schedul
 	return scheduler, nil
 }
 
-//GetQueried returns a list of scheduler documents that match the query
-func (f *Firestore) GetQueried(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error) {
+//GetAll returns a list of all scheduler documents
+func (f *Firestore) GetAll(ctx context.Context) ([]*domain.Scheduler, error) {
 
 	var datas = make([]*domain.Scheduler, 0)
-	iter := f.client.Collection(f.config.FirestoreConfig.CollectionName).Where(path, op, value).Documents(ctx)
+	iter := f.client.Collection(f.config.FirestoreConfig.CollectionName).Documents(ctx)
 
 	defer iter.Stop()
 
@@ -102,11 +102,77 @@ func (f *Firestore) GetQueried(ctx context.Context, path string, op string, valu
 			return nil, err
 		}
 
-		data := &domain.Scheduler{
-			DocumentId:  doc.Data()[documentId].(string),
-			OrderName:   doc.Data()[orderPath].(string),
-			KitchenName: doc.Data()[kitchenPath].(string),
-			DroneName:   doc.Data()[dronePath].(string),
+		data := &domain.Scheduler{}
+
+		if err := doc.DataTo(data); err != nil {
+			f.log.Error(err)
+			return nil, err
+		}
+
+		datas = append(datas, data)
+	}
+
+	return datas, nil
+}
+
+//GetShiped returns a list of all shiped scheduler documents
+func (f *Firestore) GetShiped(ctx context.Context) ([]*domain.Scheduler, error) {
+
+	var datas = make([]*domain.Scheduler, 0)
+	iter := f.client.Collection(f.config.FirestoreConfig.CollectionName).Where(dronePath, "!=", "").Documents(ctx)
+
+	defer iter.Stop()
+
+	for {
+
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			f.log.Error(err)
+			return nil, err
+		}
+
+		data := &domain.Scheduler{}
+
+		if err := doc.DataTo(data); err != nil {
+			f.log.Error(err)
+			return nil, err
+		}
+
+		datas = append(datas, data)
+	}
+
+	return datas, nil
+}
+
+//GetNotShiped returns a list of all not shiped scheduler documents
+func (f *Firestore) GetNotShiped(ctx context.Context) ([]*domain.Scheduler, error) {
+
+	var datas = make([]*domain.Scheduler, 0)
+	iter := f.client.Collection(f.config.FirestoreConfig.CollectionName).Where(dronePath, "==", "").Documents(ctx)
+
+	defer iter.Stop()
+
+	for {
+
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			f.log.Error(err)
+			return nil, err
+		}
+
+		data := &domain.Scheduler{}
+
+		if err := doc.DataTo(data); err != nil {
+			f.log.Error(err)
+			return nil, err
 		}
 
 		datas = append(datas, data)

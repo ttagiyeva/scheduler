@@ -11,7 +11,9 @@ import (
 type Scheduler interface {
 	Save(ctx context.Context, s *domain.Scheduler) error
 	Get(ctx context.Context, orderName string) (*domain.Scheduler, error)
-	GetQueried(ctx context.Context, path string, op string, value interface{}) ([]*domain.Scheduler, error)
+	GetAll(ctx context.Context) ([]*domain.Scheduler, error)
+	GetShiped(ctx context.Context) ([]*domain.Scheduler, error)
+	GetNotShiped(ctx context.Context) ([]*domain.Scheduler, error)
 	Update(ctx context.Context, s *domain.Scheduler) error
 	Delete(ctx context.Context, orderName string) error
 }

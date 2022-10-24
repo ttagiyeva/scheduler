@@ -52,52 +52,36 @@ func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 		orderNames = append(orderNames, orders[i].Name)
 	}
 
-	var partialOrders []string
+	schedulers, err := s.repo.GetAll(ctx)
+	if err != nil {
+		return err
+	}
 
-	for len(orderNames) != 0 { // empty slice cannot be used in firestore query
+	schedulerOrderNames := make([]string, 0, len(schedulers))
 
-		if len(orderNames) > 10 { // firestore query can have max 10 values
-			partialOrders = orderNames[:10]
-			orderNames = orderNames[10:]
-		} else {
-			partialOrders = orderNames
-		}
+	for i := 0; i < len(schedulers); i++ {
+		schedulerOrderNames = append(schedulerOrderNames, schedulers[i].OrderName)
+	}
 
-		schedulers, err := s.repo.GetQueried(ctx, "order_name", "in", partialOrders)
+	newOrders := s.getDifference(orderNames, schedulerOrderNames)
+
+	for _, order := range newOrders {
+		kitchenOrder, err := s.kitchen.CreateKitchenOrder(ctx, order)
 		if err != nil {
 			return err
 		}
 
-		schedulerOrderNames := make([]string, 0, len(schedulers))
-
-		for i := 0; i < len(schedulers); i++ {
-			schedulerOrderNames = append(schedulerOrderNames, schedulers[i].OrderName)
+		scheduler := &domain.Scheduler{
+			DocumentId:  strings.Split(order, "/")[1],
+			OrderName:   order,
+			KitchenName: kitchenOrder.Name,
 		}
 
-		newOrders := s.getDifference(orderNames, schedulerOrderNames)
-
-		for _, order := range newOrders {
-			kitchenOrder, err := s.kitchen.CreateKitchenOrder(ctx, order)
-			if err != nil {
-				return err
-			}
-
-			scheduler := &domain.Scheduler{
-				DocumentId:  strings.Split(order, "/")[1],
-				OrderName:   order,
-				KitchenName: kitchenOrder.Name,
-			}
-
-			err = s.repo.Save(ctx, scheduler)
-			if err != nil {
-				return err
-			}
-
+		err = s.repo.Save(ctx, scheduler)
+		if err != nil {
+			return err
 		}
 
-		if len(orderNames) <= 10 {
-			return nil
-		}
 	}
 
 	return nil
@@ -105,7 +89,7 @@ func (s *Scheduler) CreateKitchenOrders(ctx context.Context) error {
 
 //CreateShipmentOrders creates shipment orders from packaged kitchen orders which are not rejected or cancelled
 func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
-	schedulers, err := s.repo.GetQueried(ctx, "drone_name", "==", "")
+	schedulers, err := s.repo.GetNotShiped(ctx)
 	if err != nil {
 		return err
 	}
@@ -163,7 +147,7 @@ func (s *Scheduler) CreateShipmentOrders(ctx context.Context) error {
 //CompleteOrders completes orders which are delivered
 func (s *Scheduler) CompleteOrders(ctx context.Context) error {
 
-	schedulers, err := s.repo.GetQueried(ctx, "drone_name", "!=", "")
+	schedulers, err := s.repo.GetShiped(ctx)
 	if err != nil {
 		return err
 	}
